@@ -37,20 +37,27 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TF_VERSION }}
+
       - name: Terraform format
+        continue-on-error: true
+        id: fmt
         run: |
           terraform fmt -check
+
       - name: Configure AWS Credential
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+
       - name: Terraform init
         run: |
           terraform init -no-color
+
       - name: Terraform validate
         run: |
           terraform validate -no-color
+
       - name: Terraform plan
         continue-on-error: true
         id: plan
@@ -63,8 +70,9 @@ jobs:
             -input=false \
             -no-color \
             -detailed-exitcode
+
       - name: Slack Notify
-        if: steps.plan.outputs.exitcode == 2
+        if: steps.fmt.outputs.exitcode == 3
         uses: slackapi/slack-github-action@v1.22.0
         with:
           channel-id: "${{ secrets.SLACK_CHANNEL_ID }}"
